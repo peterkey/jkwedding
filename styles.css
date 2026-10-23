@@ -145,6 +145,9 @@ main { flex: 1; }
   scroll-margin-top: 8px;
 }
 
+/* Sections parked for later with the hidden attribute */
+section[hidden] { display: none; }
+
 /* Section numeral "01"–"05": italic navy numeral, then a short line */
 .numeral {
   display: flex; align-items: center; gap: 14px;
