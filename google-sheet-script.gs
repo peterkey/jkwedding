@@ -5,7 +5,8 @@
  * guest sends their reply:
  *
  *   1. Checks the guest code
- *   2. Writes (or updates) their row in the sheet
+ *   2. Writes (or updates) their rows in the sheet, one row per
+ *      person, so a couple or family replying together get a row each
  *   3. Emails them a confirmation, and emails you a heads-up
  *
  * Setup instructions are in SETUP.md.
@@ -32,9 +33,12 @@ const NOTIFY_EMAILS = '';
 const SHEET_NAME = 'RSVPs';
 
 const HEADERS = [
-  'Submitted', 'Last updated', 'Name', 'Email', 'Attending',
-  'Arriving', 'Leaving', 'Staying at hotel', 'Booking reference', 'Dietary requirements',
+  'Submitted', 'Last updated', 'Name', 'Coming', 'Dietary requirements',
+  'Arriving', 'Leaving', 'Staying at hotel', 'Booking reference', 'Replied by', 'Email',
 ];
+
+/** The most extra people one reply can include (matches the website). */
+const MAX_PARTY = 8;
 
 
 /**
@@ -67,6 +71,8 @@ function doPost(e) {
       return jsonResponse({ ok: false, error: 'missing_name_or_email' });
     }
 
+    data.party = cleanParty(data.party);
+
     const isUpdate = saveReply(data);
 
     // If the email fails we still keep the reply — better a missing
@@ -95,59 +101,99 @@ function doPost(e) {
 
 
 /**
- * Writes the reply to the sheet.
- * If this email has replied before, their existing row is updated
- * rather than a second row being added.
+ * Tidies the list of extra people sent by the website: drops blank
+ * names, trims everything and caps the size of the group.
+ */
+function cleanParty(party) {
+  if (!Array.isArray(party)) return [];
+
+  return party.slice(0, MAX_PARTY)
+    .map(function (guest) {
+      guest = guest || {};
+      const attending = !!guest.attending;
+      return {
+        name: String(guest.name || '').trim().slice(0, 200),
+        attending: attending,
+        dietary: attending ? String(guest.dietary || '').trim().slice(0, 500) : '',
+      };
+    })
+    .filter(function (guest) { return guest.name; });
+}
+
+
+/** Everyone in the reply: the person who filled it in, then the rest. */
+function everyone(data) {
+  return [{ name: data.name, attending: !!data.attending, dietary: data.attending ? (data.dietary || '') : '' }]
+    .concat(data.party);
+}
+
+
+/** True if at least one person in the reply is coming. */
+function anyoneComing(data) {
+  return everyone(data).some(function (person) { return person.attending; });
+}
+
+
+/**
+ * Writes the reply to the sheet, one row per person.
+ * If this email has replied before, that whole group's rows are
+ * replaced, so changing a reply never leaves stale rows behind.
  *
  * @return {boolean} true if an existing reply was updated
  */
 function saveReply(data) {
   const sheet = getSheet();
   const now = new Date();
+  const existingRows = findRowsByEmail(sheet, data.email);
 
-  const row = [
-    now,                                    // Submitted
-    now,                                    // Last updated
-    data.name,
-    data.email,
-    data.attending ? 'Yes' : 'No',
-    data.attending ? (data.arrivalDate || '') : '',
-    data.attending ? (data.departureDate || '') : '',
-    data.attending ? (data.stayingAtHotel ? 'Yes' : 'Elsewhere') : '',
-    data.attending && data.stayingAtHotel ? (data.hotelBookingRef || '') : '',
-    data.attending ? (data.dietary || '') : '',
-  ];
+  // Keep the original "Submitted" date when a reply is changed.
+  const submitted = existingRows.length
+    ? sheet.getRange(existingRows[0], 1).getValue()
+    : now;
 
-  const existingRow = findRowByEmail(sheet, data.email);
+  const rows = everyone(data).map(function (person) {
+    const coming = person.attending;
+    return [
+      submitted,                                         // Submitted
+      now,                                               // Last updated
+      person.name,
+      coming ? 'Yes' : 'No',
+      person.dietary,
+      coming ? (data.arrivalDate || '') : '',
+      coming ? (data.departureDate || '') : '',
+      coming ? (data.stayingAtHotel ? 'Yes' : 'Elsewhere') : '',
+      coming && data.stayingAtHotel ? (data.hotelBookingRef || '') : '',
+      data.name,                                         // Replied by
+      data.email,
+    ];
+  });
 
-  if (existingRow) {
-    // Keep the original "Submitted" date, update everything else.
-    const originalSubmitted = sheet.getRange(existingRow, 1).getValue();
-    row[0] = originalSubmitted;
-    sheet.getRange(existingRow, 1, 1, row.length).setValues([row]);
-    return true;
-  }
+  // Delete from the bottom up so the row numbers stay correct.
+  existingRows.slice().reverse().forEach(function (rowNumber) {
+    sheet.deleteRow(rowNumber);
+  });
 
-  sheet.appendRow(row);
-  return false;
+  sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, HEADERS.length).setValues(rows);
+  return existingRows.length > 0;
 }
 
 
-/** Finds the row number for an email address, or null. */
-function findRowByEmail(sheet, email) {
+/** Finds every row number belonging to an email address (top to bottom). */
+function findRowsByEmail(sheet, email) {
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return null;
+  if (lastRow < 2) return [];
 
   const emailColumn = HEADERS.indexOf('Email') + 1;
   const values = sheet.getRange(2, emailColumn, lastRow - 1, 1).getValues();
   const target = String(email).trim().toLowerCase();
+  const found = [];
 
   for (let i = 0; i < values.length; i++) {
     if (String(values[i][0]).trim().toLowerCase() === target) {
-      return i + 2; // +2 because we started at row 2
+      found.push(i + 2); // +2 because we started at row 2
     }
   }
-  return null;
+  return found;
 }
 
 
@@ -160,9 +206,19 @@ function getSheet() {
     sheet = book.insertSheet(SHEET_NAME);
   }
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(HEADERS);
-    sheet.getRange(1, 1, 1, HEADERS.length).setFontWeight('bold');
+  const lastRow = sheet.getLastRow();
+  const current = lastRow ? sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0] : [];
+  const headersMatch = HEADERS.every(function (h, i) { return current[i] === h; });
+
+  if (!headersMatch) {
+    // Columns changed when replies became one row per person. A tab with
+    // no replies yet is simply re-labelled; one holding real replies is
+    // left alone rather than risk mixing up its columns.
+    if (lastRow > 1) {
+      throw new Error('The ' + SHEET_NAME + ' tab uses an older column layout. ' +
+        'Rename it (e.g. "RSVPs old") and the script will create a fresh one.');
+    }
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
     sheet.setFrozenRows(1);
     sheet.autoResizeColumns(1, HEADERS.length);
   }
@@ -174,71 +230,73 @@ function getSheet() {
 /** The email the guest receives. */
 function sendConfirmation(data) {
   const firstName = String(data.name).trim().split(/\s+/)[0];
+  const coming = anyoneComing(data);
 
-  const subject = data.attending
+  const subject = coming
     ? 'Thank you — see you in Crete!'
     : 'Thank you for letting us know';
 
-  const intro = data.attending
+  const intro = coming
     ? `Thank you, ${escapeHtml(firstName)}. Your reply is with us and we can’t wait to see you in Crete.`
     : `Thank you, ${escapeHtml(firstName)}. We’re sorry you can’t make it, but thank you for letting us know. We’ll raise a glass to you on the day.`;
 
-  const rows = [];
-  rows.push(['Name', data.name]);
-  rows.push(['Coming?', data.attending ? 'Wouldn’t miss it' : 'Sadly can’t']);
+  // One line per person, e.g. "Jordan Nelson: Coming · Vegetarian"
+  const rows = everyone(data).map(function (person) {
+    const answer = person.attending ? 'Coming' : 'Can’t make it';
+    return [person.name, person.dietary ? answer + ' · ' + person.dietary : answer];
+  });
 
-  if (data.attending) {
+  if (coming) {
     if (data.arrivalDate)   rows.push(['Arriving in Crete', data.arrivalDate]);
     if (data.departureDate) rows.push(['Leaving', data.departureDate]);
     rows.push(['Staying at the hotel', data.stayingAtHotel ? 'Yes, booked' : 'Somewhere else']);
     if (data.hotelBookingRef) rows.push(['Booking reference', data.hotelBookingRef]);
-    if (data.dietary)         rows.push(['Dietary requirements', data.dietary]);
   }
 
   const summaryRows = rows.map(function (pair) {
     return '<tr>' +
-      '<td style="padding:8px 16px 8px 0;color:#7d6643;font-size:13px;letter-spacing:.08em;' +
+      '<td style="padding:8px 16px 8px 0;color:#4b6188;font-size:13px;letter-spacing:.08em;' +
       'text-transform:uppercase;vertical-align:top;white-space:nowrap">' + escapeHtml(pair[0]) + '</td>' +
-      '<td style="padding:8px 0;color:#2b2623;font-size:16px;vertical-align:top">' + escapeHtml(pair[1]) + '</td>' +
+      '<td style="padding:8px 0;color:#1b2c4f;font-size:16px;vertical-align:top">' + escapeHtml(pair[1]) + '</td>' +
       '</tr>';
   }).join('');
 
-  const closing = data.attending
+  const closing = coming
     ? 'We’ll be in touch nearer the time with transfer details and final timings. Start practising your dance moves.'
     : 'We’ll share plenty of photos afterwards.';
 
   const html =
-    '<div style="margin:0;padding:32px 20px;background:#fbf9f5;' +
-    'font-family:Georgia,\'Times New Roman\',serif;color:#2b2623">' +
+    '<div style="margin:0;padding:32px 20px;background:#f8f5ee;' +
+    'font-family:Georgia,\'Times New Roman\',serif;color:#1b2c4f">' +
       '<div style="max-width:520px;margin:0 auto">' +
 
         '<div style="font-size:30px;font-weight:300;letter-spacing:-.05em;margin-bottom:32px">' +
-          'J<span style="font-style:italic;color:#9c5f63">&amp;</span>K' +
+          'J<span style="font-style:italic;color:#24508f">&amp;</span>K' +
         '</div>' +
 
         '<div style="font-size:34px;line-height:1.15;font-weight:300;letter-spacing:-.03em;margin-bottom:20px">' +
-          (data.attending
-            ? 'See you in Crete<span style="font-style:italic;color:#9c5f63">!</span>'
-            : 'We’ll miss you<span style="font-style:italic;color:#9c5f63">.</span>') +
+          (coming
+            ? 'See you in Crete<span style="font-style:italic;color:#24508f">!</span>'
+            : 'We’ll miss you<span style="font-style:italic;color:#24508f">.</span>') +
         '</div>' +
 
         '<p style="font-size:17px;line-height:1.65;margin:0 0 28px">' + intro + '</p>' +
 
-        '<div style="background:#efe5d3;padding:24px 28px;margin-bottom:28px">' +
+        '<div style="background:#efebe1;padding:24px 28px;margin-bottom:28px">' +
           '<div style="font-size:13px;letter-spacing:.18em;text-transform:uppercase;' +
-          'color:#7d6643;margin-bottom:12px">Your reply</div>' +
+          'color:#4b6188;margin-bottom:12px">Your reply</div>' +
           '<table style="border-collapse:collapse;width:100%">' + summaryRows + '</table>' +
         '</div>' +
 
         '<p style="font-size:17px;line-height:1.65;margin:0 0 28px">' + closing + '</p>' +
 
-        '<p style="font-size:15px;line-height:1.6;color:#5e5348;margin:0 0 32px">' +
+        '<p style="font-size:15px;line-height:1.6;color:#46557a;margin:0 0 32px">' +
           'Changed your mind, or spotted a mistake? Just fill the form in again on the ' +
           'website with this same email address and we’ll update your reply.' +
         '</p>' +
 
-        '<div style="border-top:1px solid #d9c6a3;padding-top:20px;' +
-        'font-size:14px;color:#6b625b;line-height:1.6">' +
+        '<div style="border-top:1px solid #c6cedb;padding-top:20px;' +
+        'font-size:14px;color:#56627d;line-height:1.6">' +
           'Jordan &amp; Kirsty<br>' +
           'Wednesday 31 May 2028 · Atlantica Caldera Palace, Lyttos Beach, Crete' +
         '</div>' +
@@ -266,25 +324,32 @@ function sendConfirmation(data) {
 function notifyCouple(data, isUpdate) {
   if (!NOTIFY_EMAILS) return;
 
-  const verdict = data.attending ? 'is coming' : 'can’t make it';
-  const subject = (isUpdate ? 'RSVP updated: ' : 'New RSVP: ') + data.name + ' ' + verdict;
+  const people = everyone(data);
+  const comingCount = people.filter(function (p) { return p.attending; }).length;
 
-  const lines = [
-    'Name: ' + data.name,
-    'Email: ' + data.email,
-    'Attending: ' + (data.attending ? 'Yes' : 'No'),
-  ];
+  // "Kirsty Williams is coming" or "Kirsty Williams + 2 (3 coming)"
+  const verdict = people.length === 1
+    ? (comingCount ? ' is coming' : ' can’t make it')
+    : ' + ' + (people.length - 1) + ' (' + comingCount + ' coming)';
+  const subject = (isUpdate ? 'RSVP updated: ' : 'New RSVP: ') + data.name + verdict;
 
-  if (data.attending) {
+  const lines = ['Email: ' + data.email, ''];
+
+  people.forEach(function (person) {
+    lines.push(person.name + ': ' + (person.attending ? 'Yes' : 'No') +
+      (person.dietary ? ' (dietary: ' + person.dietary + ')' : ''));
+  });
+
+  if (comingCount) {
+    lines.push('');
     lines.push('Arriving: ' + (data.arrivalDate || '—'));
     lines.push('Leaving: ' + (data.departureDate || '—'));
     lines.push('Staying at hotel: ' + (data.stayingAtHotel ? 'Yes' : 'Elsewhere'));
     if (data.hotelBookingRef) lines.push('Booking reference: ' + data.hotelBookingRef);
-    if (data.dietary)         lines.push('Dietary: ' + data.dietary);
   }
 
   lines.push('');
-  lines.push(isUpdate ? 'This replaced an earlier reply from the same email address.' : '');
+  lines.push(isUpdate ? 'This replaced an earlier reply (and its rows) from the same email address.' : '');
   lines.push(SpreadsheetApp.getActiveSpreadsheet().getUrl());
 
   MailApp.sendEmail({
@@ -332,10 +397,14 @@ function sendTestReply() {
         stayingAtHotel: true,
         hotelBookingRef: 'TEST-12345',
         dietary: 'A weakness for Percy Pigs.',
+        party: [
+          { name: 'Test Partner', attending: true, dietary: 'Vegetarian' },
+          { name: 'Test Plus Two', attending: false, dietary: '' },
+        ],
       }),
     },
   });
 
   Logger.log('Done. Check the RSVPs tab, and check ' + you + ' for the confirmation email.');
-  Logger.log('Delete the "Test Guest" row when you are happy it works.');
+  Logger.log('Delete the three "Test" rows when you are happy it works.');
 }

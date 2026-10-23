@@ -81,11 +81,12 @@ you're granting *your own* script access to *your own* spreadsheet:
 > spreadsheet. It's fine.
 
 Now check two things:
-- Go back to the spreadsheet — there should be an **RSVPs** tab with a
-  row for "Test Guest"
+- Go back to the spreadsheet — there should be an **RSVPs** tab with
+  three rows: "Test Guest", "Test Partner" and "Test Plus Two" (the test
+  replies for a small group, the way a couple or family would)
 - Check your inbox — you should have a confirmation email
 
-Delete the Test Guest row once you're happy.
+Delete the three Test rows once you're happy.
 
 **1.6 — Publish it so the website can reach it**
 
@@ -241,30 +242,59 @@ you said you'd fill in later:
 | `EDIT: day 1` | Welcome drinks — date, time, venue, dress |
 | `EDIT: day 2` | The wedding day |
 | `EDIT: day 3` | Recovery brunch |
-| `EDIT: RSVP deadline` | The deadline (it appears twice) |
+| `EDIT: RSVP deadline` | The deadline (it appears three times, including the "RSVP by 1 Feb" button) |
 | `EDIT: paste the airport directions link` | "Directions from the airport →" |
 | `EDIT: paste the hotel booking link` | "Book at the hotel →" |
+| `EDIT: date and place` | The date in the footer and the mobile menu |
+| `postcard__year` | The year under each gallery postcard (currently placeholders) |
 
 For the two links, replace the `#` between the quotes:
 
 ```html
-<a href="#" data-needs-link="hotel booking">Book at the hotel →</a>
+<a class="text-link" href="#" data-needs-link="hotel booking">Book at the hotel →</a>
 ```
 becomes
 ```html
-<a href="https://the-real-link-here.com">Book at the hotel →</a>
+<a class="text-link" href="https://the-real-link-here.com">Book at the hotel →</a>
 ```
+
+### Calendar invites
+
+"Add it to your calendar" in The days uses two things:
+
+- `wedding.ics`: the file Apple and Outlook open, holding all three events.
+  Times are written in UTC (Crete minus 2 hours), so `20280531T123000Z` is
+  3:30pm in Crete on 31 May. If a time changes, edit the matching `DTSTART` and
+  `DTEND` lines.
+- The Google link in `index.html` (search for `EDIT: if the times above change`).
+  The `dates=` part uses the same UTC format.
+
+Calendars don't update themselves, so guests who added the events early
+won't see later changes. Tell people if a time moves.
+
+### The link preview (WhatsApp, iMessage)
+
+`images/share.jpg` is the picture people see when you send the link.
+Once the site has its address, open `index.html`, search for
+`EDIT: once the site has its address` and put the full address in front of
+`images/share.jpg`, for example:
+
+```html
+<meta property="og:image" content="https://jkwedding.vercel.app/images/share.jpg">
+```
+
+Without the full address, most apps show the link with no picture.
 
 ### The countdown
 
 If the ceremony time changes, open `main.js` and edit:
 
 ```javascript
-countdownTargetUTC: Date.UTC(2028, 4, 31, 12, 0, 0),
+countdownTargetUTC: Date.UTC(2028, 4, 31, 12, 30, 0),
 ```
 
 The numbers are: year, month, day, hour, minute, second — in **UTC**,
-which is 2 hours behind Crete. So 3pm in Crete is 12:00 UTC. Months
+which is 2 hours behind Crete. So 3:30pm in Crete is 12:30 UTC. Months
 count from zero, so `4` means May.
 
 ### The guest code
@@ -280,7 +310,8 @@ form will stop working:
 3. Put the plain new code into the Apps Script → `GUEST_CODE`
 4. Redeploy the Apps Script (see the note at the end of Step 1)
 
-Guests who already unlocked the site on their phone stay unlocked.
+The code is asked for on every visit — nothing is remembered between
+page loads, so a refresh closes the form again.
 
 ### Letting Google find the site
 
@@ -296,14 +327,27 @@ line near the top of `index.html`:
 
 ## Seeing and exporting the replies
 
-Open your *Wedding RSVPs* spreadsheet. One row per guest:
+Open your *Wedding RSVPs* spreadsheet. One row per **person**, even when
+a couple or family sent one reply together:
 
-| Submitted | Last updated | Name | Email | Attending | Arriving | Leaving | Staying at hotel | Booking reference | Dietary requirements |
+| Submitted | Last updated | Name | Coming | Dietary requirements | Arriving | Leaving | Staying at hotel | Booking reference | Replied by | Email |
 
-If a guest replies twice, their original row is **updated** rather than a
-second one added — so the sheet always shows one row per person.
-"Submitted" keeps their first reply date; "Last updated" shows the
-latest.
+- **Headcount:** filter the *Coming* column to "Yes" and count the rows.
+- **Replied by** and **Email** show who filled the form in, so you can see
+  which people came as a group.
+- Arrival, departure and hotel are shared by everyone in a reply.
+
+If someone replies again with the same email address, the rows from
+their earlier reply are **replaced** (and move to the bottom of the
+sheet). So if they drop someone from their group, that person's row
+disappears too. "Submitted" keeps their first reply date; "Last updated"
+shows the latest.
+
+> **Updating an older copy of the script?** The columns changed when
+> group replies were added. Paste in the new script and redeploy (see the
+> note at the end of Step 1). If your RSVPs tab already holds real
+> replies, rename it (e.g. "RSVPs old") first; the script will start a
+> fresh tab rather than risk mixing up the columns.
 
 **To export** — in the spreadsheet: **File → Download → Comma Separated
 Values (.csv)**. That opens in Excel or Numbers and is the format most

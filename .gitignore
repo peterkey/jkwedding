@@ -3,3 +3,8 @@ Thumbs.db
 node_modules/
 .vercel
 *.log
+
+# Local-only files
+OPEN.txt
+Jordan & Kirsty Wedding Site/Jordan & Kirsty Wedding Site.zip
+Jordan & Kirsty Wedding Site/Jordan & Kirsty Wedding Site/

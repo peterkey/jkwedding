@@ -21,7 +21,12 @@ So you can add photos a few at a time — the site never looks broken.
 **A few tips**
 
 - `hero.jpg` is tall and thin (portrait). Aim for roughly 3:4 — taller than wide.
-- `gallery-1`, `-3`, `-6` and `-8` are arch-shaped and taller; the rest are rectangles.
-  All of them are cropped from the centre, so keep faces away from the edges.
+- The gallery photos sit in postcards and are cropped to 4:5 (a little taller
+  than wide) from the centre, so keep faces away from the edges.
+- The years under each postcard are placeholders. Change them in `index.html`
+  (search for `postcard__year`).
 - Straight off your phone is fine. See "Adding your photos" in `SETUP.md`
   for a one-line command that shrinks them so the site stays fast.
+
+`shell.png` and `wave.png` are the scallop shell and wave flourish from the
+save-the-date card. They're part of the design, so leave them in place.

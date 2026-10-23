@@ -10,7 +10,7 @@ const CONFIG = {
   // 1. Paste the web app URL you get from Google Apps Script here.
   //    It looks like: https://script.google.com/macros/s/AKfy..../exec
   //    Until this is filled in, the form will say it isn't connected.
-  rsvpEndpoint: '',
+  rsvpEndpoint: 'https://script.google.com/macros/s/AKfycby6mffbg6XAj4HWxjCQ3LgMYgReFIbmycgbqCUwg0k8CXhYzG3x_IYQirCfn-fKJoqr/exec',
 
   // 2. The guest code, stored as a fingerprint rather than the word itself,
   //    so nobody can read it by viewing the page source.
@@ -21,9 +21,9 @@ const CONFIG = {
   guestCodeHash: '205c3e16c66ff0b845700155d0394219f64e9eb6ed9db9f7758382bb4106eb11',
 
   // 3. The moment you're counting down to.
-  //    3pm in Crete on 31 May 2028 is 12:00 UTC.
+  //    3:30pm in Crete on 31 May 2028 is 12:30 UTC.
   //    Months count from 0, so 4 = May.
-  countdownTargetUTC: Date.UTC(2028, 4, 31, 12, 0, 0),
+  countdownTargetUTC: Date.UTC(2028, 4, 31, 12, 30, 0),
 
 };
 
@@ -85,6 +85,87 @@ function setupCountdown() {
 }
 
 
+/* ---------- Scroll reveal -----------------------------------
+   Blocks marked data-reveal fade up once as they enter the view.
+   Neighbouring blocks stagger by 90ms. Skipped entirely when the
+   visitor has asked for reduced motion. */
+
+function setupReveal() {
+  const blocks = $$('[data-reveal]');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window) || !Element.prototype.animate) return;
+
+  document.documentElement.classList.add('reveal-ready');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      observer.unobserve(el);
+
+      const siblings = Array.from(el.parentElement.children).filter(x => x.hasAttribute('data-reveal'));
+      el.animate(
+        [{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
+        { duration: 900, delay: Math.max(0, siblings.indexOf(el)) * 90,
+          easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'backwards' }
+      );
+      el.classList.add('is-revealed');
+    });
+  }, { rootMargin: '0px 0px -8% 0px' });
+
+  blocks.forEach(el => observer.observe(el));
+}
+
+
+/* ---------- Travel tips: Crete time and exchange rate -------
+   The time comes from the visitor's own clock, so it always works.
+   The rate is fetched from Frankfurter (free European Central Bank
+   rates, no account needed). If that fails, the line stays hidden
+   and the tip reads exactly as it did before. */
+
+function setupCreteTime() {
+  const el = $('#crete-time');
+  if (!el) return;
+
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Athens', hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+
+  const tick = () => {
+    const time = fmt.format(new Date()).replace(/\s/g, '').toLowerCase();
+    el.textContent = `It’s ${time} in Crete right now.`;
+  };
+
+  tick();
+  el.hidden = false;
+  setInterval(tick, 10000);
+}
+
+async function setupExchangeRate() {
+  const el = $('#exchange-rate');
+  if (!el) return;
+
+  try {
+    const res = await fetch('https://api.frankfurter.dev/v2/rates?base=GBP&quotes=EUR');
+    if (!res.ok) throw new Error(res.status);
+    const [{ rate, date }] = await res.json();
+    if (!(rate > 0)) throw new Error('no rate');
+
+    const day = new Date(date + 'T12:00:00Z')
+      .toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+    el.innerHTML = '';
+    el.append(
+      `Today £1 is about €${rate.toFixed(2)}, so £100 gets you roughly €${Math.round(rate * 100)}. `,
+      Object.assign(document.createElement('span'), { className: 'note__source', textContent: `ECB rate, ${day}` }),
+    );
+    el.hidden = false;
+  } catch (err) {
+    console.warn('Exchange rate unavailable:', err);
+  }
+}
+
+
 /* ---------- Mobile menu -------------------------------------- */
 
 function setupMenu() {
@@ -129,7 +210,9 @@ function setupMenu() {
    checked again by the Apps Script before anything is written,
    so the real gate is on the server. */
 
-const UNLOCK_KEY = 'jk-rsvp-unlocked';
+/* The code the guest typed. Held in memory only, never saved, so
+   refreshing the page closes the form again. */
+let guestCode = '';
 
 async function sha256(text) {
   const bytes = new TextEncoder().encode(text);
@@ -147,34 +230,28 @@ function setupGate() {
   const error = $('#gate-error');
   if (!gate || !form) return;
 
-  const unlock = () => {
+  const unlock = code => {
+    guestCode = code;
     gate.hidden = true;
     form.hidden = false;
   };
-
-  // Already unlocked on this device?
-  if (localStorage.getItem(UNLOCK_KEY)) {
-    unlock();
-    return;
-  }
-
-  // crypto.subtle only exists over https (or localhost). If the page is
-  // opened straight off the disk we skip the on-page check and let the
-  // Apps Script do the gatekeeping instead.
-  if (!window.crypto?.subtle) {
-    unlock();
-    return;
-  }
 
   gateForm.addEventListener('submit', async e => {
     e.preventDefault();
     const entered = input.value.trim().toLowerCase();
     if (!entered) return;
 
+    // crypto.subtle only exists over https (or localhost). If the page
+    // was opened straight off the disk we can't check the code here, so
+    // we let it through and let the Apps Script be the judge instead.
+    if (!window.crypto?.subtle) {
+      unlock(entered);
+      return;
+    }
+
     if (await sha256(entered) === CONFIG.guestCodeHash) {
-      try { localStorage.setItem(UNLOCK_KEY, entered); } catch { /* private browsing */ }
       error.hidden = true;
-      unlock();
+      unlock(entered);
       $('#name')?.focus();
     } else {
       error.hidden = false;
@@ -199,22 +276,83 @@ function setupRsvp() {
 
   const attendingFields = $('#attending-fields');
   const hotelRefField = $('#hotel-ref-field');
+  const dietaryField = $('#dietary-field');
   const success = $('#rsvp-success');
   const status = $('#form-status');
   const submitBtn = $('#submit');
+
+  /* -- the rest of the party --
+     Each "+ Add someone" copies the template: a name, their own
+     yes/no and their own dietary box. Travel dates and the hotel
+     are shared by the whole group. */
+
+  const partyList = $('#party-list');
+  const partyAdd = $('#party-add');
+  const template = $('#party-member-template');
+  const MAX_PARTY = 8;
+  let partyCounter = 0;
+
+  const partyMembers = () => $$('.party-member', partyList);
+
+  const readParty = () => partyMembers()
+    .map(member => ({
+      name: $('[data-field="name"]', member).value.trim(),
+      attending: $('[data-field="yes"]', member).checked,
+      dietary: $('[data-field="dietary"]', member).value.trim(),
+    }))
+    .filter(guest => guest.name); // a row left blank is simply ignored
+
+  function addPartyMember() {
+    const member = template.content.firstElementChild.cloneNode(true);
+    const n = ++partyCounter;
+
+    // Give every input a unique id and point its label at it,
+    // and give each person's yes/no its own radio group.
+    $$('[data-field]', member).forEach(input => {
+      input.id = `party-${n}-${input.dataset.field}`;
+      if (input.type === 'radio') input.name = `party-${n}-attending`;
+    });
+    $$('[data-for]', member).forEach(label => {
+      label.htmlFor = `party-${n}-${label.dataset.for}`;
+    });
+
+    $$('input[type="radio"]', member).forEach(r => r.addEventListener('change', syncVisibility));
+    $('.party-member__remove', member).addEventListener('click', () => {
+      member.remove();
+      syncVisibility();
+      partyAdd.focus();
+    });
+
+    partyList.append(member);
+    syncVisibility();
+    $('[data-field="name"]', member).focus();
+  }
+
+  partyAdd.addEventListener('click', addPartyMember);
 
   /* -- conditional fields -- */
 
   const isAttending = () => $('#att-yes').checked;
   const isStaying = () => $('#stay-yes').checked;
+  const anyoneComing = () => isAttending() || readParty().some(g => g.attending);
 
-  const syncVisibility = () => {
-    attendingFields.hidden = !isAttending();
+  function syncVisibility() {
+    // Dates and hotel matter if anyone in the group is coming, even if
+    // the person filling in the form can't make it themselves.
+    attendingFields.hidden = !anyoneComing();
     hotelRefField.hidden = !isStaying();
-  };
+    dietaryField.hidden = !isAttending();
+
+    partyMembers().forEach(member => {
+      $('[data-role="dietary-field"]', member).hidden = !$('[data-field="yes"]', member).checked;
+    });
+    partyAdd.hidden = partyMembers().length >= MAX_PARTY;
+  }
 
   $$('input[name="attending"]').forEach(r => r.addEventListener('change', syncVisibility));
   $$('input[name="stayingAtHotel"]').forEach(r => r.addEventListener('change', syncVisibility));
+  // A name typed or cleared can change whether anyone else is coming
+  partyList.addEventListener('input', syncVisibility);
   syncVisibility();
 
   /* -- validation -- */
@@ -270,17 +408,20 @@ function setupRsvp() {
     }
 
     const attending = isAttending();
+    const party = readParty().map(g => ({ ...g, dietary: g.attending ? g.dietary : '' }));
+    const travelling = attending || party.some(g => g.attending);
     const staying = isStaying();
 
     const payload = {
-      code: localStorage.getItem(UNLOCK_KEY) || $('#gate-input')?.value.trim().toLowerCase() || '',
+      code: guestCode,
       name: nameInput.value.trim(),
       email: emailInput.value.trim(),
       attending,
-      arrivalDate: attending ? $('#arrival').value : '',
-      departureDate: attending ? $('#departure').value : '',
-      stayingAtHotel: attending ? staying : false,
-      hotelBookingRef: attending && staying ? $('#hotelRef').value.trim() : '',
+      party,
+      arrivalDate: travelling ? $('#arrival').value : '',
+      departureDate: travelling ? $('#departure').value : '',
+      stayingAtHotel: travelling ? staying : false,
+      hotelBookingRef: travelling && staying ? $('#hotelRef').value.trim() : '',
       dietary: attending ? $('#dietary').value.trim() : '',
     };
 
@@ -320,15 +461,20 @@ function setupRsvp() {
 
   /* -- success state -- */
 
-  function showSuccess({ name, attending }) {
+  function showSuccess({ name, attending, party }) {
     const first = name.trim().split(/\s+/)[0] || '';
+    const coming = (attending ? 1 : 0) + party.filter(g => g.attending).length;
+    const total = 1 + party.length;
 
-    $('#success-title').textContent = attending
+    $('#success-title').textContent = coming
       ? `Thank you, ${first}. See you in Crete!`
       : `We’ll miss you, ${first}.`;
 
-    $('#success-body').textContent = attending
-      ? 'Your reply is with us. We’ll be in touch nearer the time with transfer details and final timings. Start practising your dance moves.'
+    const whose = total === 1 ? 'Your reply'
+      : total === 2 ? 'Your reply for both of you'
+      : `Your reply for all ${total} of you`;
+    $('#success-body').textContent = coming
+      ? `${whose} is with us. We can’t wait to celebrate with you. Start practising your dance moves.`
       : 'Thank you for letting us know. We’ll raise a glass to you on the day, and we’ll share plenty of photos afterwards.';
 
     form.hidden = true;
@@ -348,7 +494,10 @@ function setupRsvp() {
 /* ---------- go ------------------------------------------------ */
 
 setupPhotos();
+setupReveal();
 setupCountdown();
+setupCreteTime();
+setupExchangeRate();
 setupMenu();
 setupGate();
 setupRsvp();

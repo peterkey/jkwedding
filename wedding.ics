@@ -1,0 +1,39 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Jordan and Kirsty//Wedding//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Jordan & Kirsty's wedding
+BEGIN:VEVENT
+UID:welcome-drinks-2028@jordan-and-kirsty
+DTSTAMP:20261018T120000Z
+DTSTART:20280530T160000Z
+DTEND:20280530T190000Z
+SUMMARY:Jordan & Kirsty: welcome drinks
+LOCATION:Pool terrace\, Atlantica Caldera Palace\, Lyttos Beach\, Crete\, G
+ reece
+DESCRIPTION:A relaxed first evening on the terrace. Dress: smart casual. Ti
+ mes are a guide\, check the wedding site nearer the day.
+END:VEVENT
+BEGIN:VEVENT
+UID:wedding-2028@jordan-and-kirsty
+DTSTAMP:20261018T120000Z
+DTSTART:20280531T123000Z
+DTEND:20280531T210000Z
+SUMMARY:Jordan & Kirsty's wedding
+LOCATION:Atlantica Caldera Palace\, Lyttos Beach\, Crete\, Greece
+DESCRIPTION:Ceremony at 3:30pm Crete time\, then dinner and dancing. Dress:
+  summer formal. Times are a guide\, check the wedding site nearer the day.
+END:VEVENT
+BEGIN:VEVENT
+UID:brunch-2028@jordan-and-kirsty
+DTSTAMP:20261018T120000Z
+DTSTART:20280601T080000Z
+DTEND:20280601T100000Z
+SUMMARY:Jordan & Kirsty: recovery brunch
+LOCATION:Beachfront\, Atlantica Caldera Palace\, Lyttos Beach\, Crete\, Gre
+ ece
+DESCRIPTION:Strong coffee\, loukoumades and a full debrief. Dress: whatever
+ 's comfy.
+END:VEVENT
+END:VCALENDAR
