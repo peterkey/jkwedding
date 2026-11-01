@@ -248,7 +248,10 @@ section[hidden] { display: none; }
 .rsvp-nudge__text {
   font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
   font-size: 26px; font-weight: 500; line-height: 1;
-  padding-bottom: 4px;
+  /* Side/top padding keeps the slanted glyphs (the final P especially)
+     inside the box: Safari clips ink that overhangs an animated layer.
+     The negative margin cancels it so the spacing doesn't change. */
+  padding: 3px 8px 4px 4px; margin: -3px -8px 0 -4px;
   transform: rotate(-4deg);
   animation: nudge-fade .6s 1s var(--ease-out) both;
 }
