@@ -30,8 +30,8 @@
 
 <link rel="preload" href="fonts/ss4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/pinyon-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="styles.css">
-<script src="main.js" defer></script>
+<link rel="stylesheet" href="styles.css?v=5">
+<script src="main.js?v=2" defer></script>
 </head>
 <body>
 <div class="page">
@@ -44,14 +44,33 @@
   <a class="nav-link" href="#travel">Travel &amp; stay</a>
   <a class="nav-link" href="#wear">What to wear</a>
   <a class="nav-link" href="#gallery">Gallery</a>
-  <a class="rsvp-pill" href="#rsvp">RSVP</a>
+  <span class="rsvp-wrap">
+    <a class="rsvp-pill" href="#rsvp">RSVP</a>
+    <!-- Hand-drawn nudge pointing at the RSVP pill. Decorative: the pill is the real link. -->
+    <a class="rsvp-nudge" href="#rsvp" tabindex="-1" aria-hidden="true">
+      <span class="rsvp-nudge__text">click here to RSVP</span>
+      <svg class="rsvp-nudge__arrow" viewBox="0 0 90 72" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path pathLength="1" d="M3 60 C 22 67, 44 62, 50 44 C 56 26, 30 18, 26 34 C 22 52, 58 56, 70 36 C 76 26, 78 16, 79 6"/>
+        <path pathLength="1" class="rsvp-nudge__head" d="M72 13 L79 5 L85 14"/>
+      </svg>
+    </a>
+  </span>
 </header>
 
 <!-- ============ HEADER (mobile) ============ -->
 <header class="site-header site-header--mobile">
   <a class="monogram" href="#home" aria-label="Jordan and Kirsty — back to top">J<span class="amp">&amp;</span>K</a>
   <div class="header-actions">
-    <a class="rsvp-pill" href="#rsvp">RSVP</a>
+    <span class="rsvp-wrap">
+      <a class="rsvp-pill" href="#rsvp">RSVP</a>
+      <a class="rsvp-nudge" href="#rsvp" tabindex="-1" aria-hidden="true">
+        <span class="rsvp-nudge__text">click here to RSVP</span>
+        <svg class="rsvp-nudge__arrow" viewBox="0 0 90 72" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path pathLength="1" d="M3 60 C 22 67, 44 62, 50 44 C 56 26, 30 18, 26 34 C 22 52, 58 56, 70 36 C 76 26, 78 16, 79 6"/>
+          <path pathLength="1" class="rsvp-nudge__head" d="M72 13 L79 5 L85 14"/>
+        </svg>
+      </a>
+    </span>
     <button class="hamburger" type="button" id="menu-open" aria-label="Menu" aria-expanded="false" aria-controls="menu">
       <span></span><span></span>
     </button>
