@@ -16,10 +16,9 @@
 <meta property="og:title" content="Jordan &amp; Kirsty — 31 May 2028">
 <meta property="og:description" content="We’re getting married in Crete, and we’d love you there.">
 <meta property="og:locale" content="en_GB">
-<!-- EDIT: once the site has its address, put the full link in front of
-     images/share.jpg below (e.g. https://jkwedding.vercel.app/images/share.jpg).
-     WhatsApp and Facebook only show the picture when the link is complete. -->
-<meta property="og:image" content="images/share.jpg">
+<!-- WhatsApp and Facebook only show the picture when the link is complete. -->
+<meta property="og:url" content="https://jordanandkirstywedding.com/">
+<meta property="og:image" content="https://jordanandkirstywedding.com/images/share.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Jordan &amp; Kirsty, Wednesday 31st May 2028, Crete">
@@ -333,81 +332,49 @@
     <p class="section-head__intro">A few favourites from the years before Crete. After the wedding, this is where the photos from the day will go.</p>
   </div>
 
-  <!-- Drop your photos into the images folder using these exact names and they
-       will appear here automatically. Until then you’ll see striped placeholders.
-       EDIT: the years beside each caption are placeholders. -->
-  <div class="gallery__grid">
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-1.jpg" alt="How we met" loading="lazy" decoding="async">
-          <span class="photo__label">How we met</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">how we met</span><span class="postcard__year">2019</span></figcaption>
-      </div>
+  <!-- Masonry gallery: photos keep their own shape and flow into columns
+       (3 on desktop, 2 on tablets, 1 on small phones). To add a photo, drop
+       gallery-N.jpg into /images and copy one <figure> below. Set width and
+       height to the photo's pixel size so the layout doesn't jump as it loads. -->
+  <div class="masonry">
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-1.jpg" alt="How we met" width="754" height="749" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-2.jpg" alt="First holiday" loading="lazy" decoding="async">
-          <span class="photo__label">First holiday</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">first holiday</span><span class="postcard__year">2020</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-2.jpg" alt="First holiday" width="1080" height="810" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-3.jpg" alt="The proposal" loading="lazy" decoding="async">
-          <span class="photo__label">The proposal</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">the proposal</span><span class="postcard__year">2026</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-3.jpg" alt="The proposal" width="1179" height="1473" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-4.jpg" alt="Friends" loading="lazy" decoding="async">
-          <span class="photo__label">Friends</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">friends</span><span class="postcard__year">2022</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-4.jpg" alt="Friends" width="1080" height="1080" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-5.jpg" alt="Family" loading="lazy" decoding="async">
-          <span class="photo__label">Family</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">family</span><span class="postcard__year">2023</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-5.jpg" alt="Family" width="1179" height="823" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-6.jpg" alt="A favourite" loading="lazy" decoding="async">
-          <span class="photo__label">A favourite</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">a favourite</span><span class="postcard__year">2024</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-6.jpg" alt="A favourite" width="1179" height="1529" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-7.jpg" alt="Home" loading="lazy" decoding="async">
-          <span class="photo__label">Home</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">home</span><span class="postcard__year">2025</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-7.jpg" alt="Home" width="1179" height="861" loading="lazy" decoding="async">
     </figure>
-    <figure class="postcard framed" data-reveal>
-      <div class="postcard__card">
-        <div class="photo">
-          <img src="images/gallery-8.jpg" alt="Just because" loading="lazy" decoding="async">
-          <span class="photo__label">Just because</span>
-        </div>
-        <figcaption class="postcard__caption"><span class="script">just because</span><span class="postcard__year">2027</span></figcaption>
-      </div>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-8.jpg" alt="Just because" width="1204" height="899" loading="lazy" decoding="async">
+    </figure>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-9.jpg" alt="Jordan and Kirsty" width="1204" height="1601" loading="lazy" decoding="async">
+    </figure>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-10.jpg" alt="Jordan and Kirsty" width="1204" height="1604" loading="lazy" decoding="async">
+    </figure>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-11.jpg" alt="Jordan and Kirsty" width="1204" height="899" loading="lazy" decoding="async">
+    </figure>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-12.jpg" alt="Jordan and Kirsty" width="1204" height="895" loading="lazy" decoding="async">
+    </figure>
+    <figure class="masonry__item photo" data-reveal>
+      <img src="images/gallery-13.jpg" alt="Jordan and Kirsty" width="1204" height="1604" loading="lazy" decoding="async">
     </figure>
   </div>
   <p class="script gallery__sign-off">wish you were here</p>

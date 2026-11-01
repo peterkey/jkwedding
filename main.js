@@ -106,7 +106,7 @@ function setupReveal() {
       const siblings = Array.from(el.parentElement.children).filter(x => x.hasAttribute('data-reveal'));
       el.animate(
         [{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
-        { duration: 900, delay: Math.max(0, siblings.indexOf(el)) * 90,
+        { duration: 900, delay: Math.min(Math.max(0, siblings.indexOf(el)), 5) * 90,
           easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'backwards' }
       );
       el.classList.add('is-revealed');

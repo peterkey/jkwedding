@@ -545,7 +545,7 @@ section[hidden] { display: none; }
 }
 
 /* Pinstripe frame around a cream panel. Reused by the callout,
-   the gallery postcards and the RSVP card. */
+   and the RSVP card. */
 .framed { padding: 10px; background: var(--pinstripe); }
 
 .callout { margin-top: clamp(56px, 8vw, 104px); }
@@ -627,33 +627,31 @@ section[hidden] { display: none; }
 }
 
 /* ---------- gallery ---------- */
-/* Postcards: pinstripe frame, cream card, 4:5 photo, script caption */
-.gallery__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
-  gap: 28px;
+/* Masonry: CSS columns, each photo at its natural aspect ratio.
+   The img width/height attributes reserve the space before it loads,
+   so the striped placeholder shows at the right shape. */
+.masonry {
+  columns: 2;
+  column-gap: clamp(12px, 1.6vw, 20px);
   padding-top: clamp(48px, 6vw, 80px);
 }
-.postcard {
-  margin: 0;
-  box-shadow: 0 1px 2px rgba(27, 44, 79, .12), 0 8px 24px rgba(27, 44, 79, .08);
-  transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out);
+.masonry__item {
+  height: auto;
+  display: block;
+  break-inside: avoid;
+  margin: 0 0 clamp(12px, 1.6vw, 20px);
+  border-radius: 4px;
 }
-.postcard:hover {
-  transform: translateY(-6px) rotate(-.6deg);
-  box-shadow: 0 2px 4px rgba(27, 44, 79, .14), 0 18px 40px rgba(27, 44, 79, .14);
+.masonry__item img {
+  position: static;
+  display: block;
+  height: auto;
+  transition: opacity .4s ease, transform .8s var(--ease-out);
 }
-.postcard__card {
-  background: var(--card);
-  padding: 14px 14px 10px;
-  display: flex; flex-direction: column; gap: 10px;
+@media (min-width: 900px) { .masonry { columns: 3; } }
+@media (hover: hover) {
+  .masonry__item.is-filled:hover img { transform: scale(1.03); }
 }
-.postcard .photo { aspect-ratio: 4 / 5; height: auto; }
-.postcard__caption {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
-}
-.postcard__caption .script { font-size: 24px; line-height: 1.2; }
-.postcard__year { font-size: 12px; letter-spacing: .14em; color: var(--muted); }
 .gallery__sign-off { padding-top: clamp(32px, 4vw, 48px); font-size: clamp(30px, 3.2vw, 40px); }
 
 /* ---------- RSVP ---------- */

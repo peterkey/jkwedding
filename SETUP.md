@@ -171,26 +171,26 @@ From then on, any change you push goes live in about thirty seconds.
 
 ---
 
-## Step 3 — Connect jordanandkirsty.com
+## Step 3 — Connect jordanandkirstywedding.com
 
-You'll need the domain registered first (the place you bought it from is
-your "registrar" — GoDaddy, Namecheap, 123-reg and so on).
-
-1. In Vercel, open your project → **Settings** → **Domains**
-2. Type `jordanandkirsty.com` and click **Add**
+1. In Vercel, open the `jkwedding` project → **Settings** → **Domains**
+2. Type `jordanandkirstywedding.com` and click **Add**. When asked, let
+   it add `www.jordanandkirstywedding.com` too, redirecting to the main one.
 3. Vercel shows you the DNS records it wants. It's usually:
    - an **A** record for `@` pointing at an IP address
    - a **CNAME** record for `www` pointing at a Vercel address
 
-   **Use exactly what Vercel shows you on screen** — these values change
+   **Use exactly what Vercel shows you on screen.** These values change
    from time to time, so don't copy them from here or anywhere else.
-4. Log in to your registrar, find **DNS settings** (sometimes "Manage
-   DNS" or "Advanced DNS"), and add those two records.
+4. Log in to wherever you bought the domain (your "registrar"), find
+   **DNS settings** (sometimes "Manage DNS" or "Advanced DNS"), delete any
+   existing A or CNAME records for `@` and `www` (often a "parked" page),
+   and add the ones Vercel gave you.
 5. Go back to Vercel and wait. It checks automatically.
 
 It usually works within an hour, but DNS can take up to 48 hours to
 settle worldwide. Vercel sets up the padlock (HTTPS) on its own once the
-domain is verified — nothing to do there.
+domain is verified. Nothing to do there.
 
 ---
 
@@ -202,6 +202,7 @@ Put your pictures in the `images/` folder with these exact names:
 hero.jpg
 gallery-1.jpg   gallery-2.jpg   gallery-3.jpg   gallery-4.jpg
 gallery-5.jpg   gallery-6.jpg   gallery-7.jpg   gallery-8.jpg
+... up to gallery-13.jpg
 ```
 
 They appear on the site straight away — nothing to edit. Until a photo
@@ -275,15 +276,11 @@ won't see later changes. Tell people if a time moves.
 ### The link preview (WhatsApp, iMessage)
 
 `images/share.jpg` is the picture people see when you send the link.
-Once the site has its address, open `index.html`, search for
-`EDIT: once the site has its address` and put the full address in front of
-`images/share.jpg`, for example:
-
-```html
-<meta property="og:image" content="https://jkwedding.vercel.app/images/share.jpg">
-```
-
-Without the full address, most apps show the link with no picture.
+To change it, replace that file and keep the size at 1200 × 630. Its full
+address (`https://jordanandkirstywedding.com/images/share.jpg`) is
+already set in `index.html`. If the domain ever changes, update the
+`og:url` and `og:image` lines there too, or most apps will show the link
+with no picture.
 
 ### The countdown
 
